@@ -10,7 +10,6 @@ import SearchInput, { createFilter } from "react-search-input";
 import * as actions from "../actions";
 import { versionCompare } from "../utils/util";
 import LibraryItemView from "./LibraryItemView";
-import InfiniteListView from "./InfiniteListView";
 
 interface ILibraryManagerProps extends React.Props<any> {
     libraries: any;
@@ -116,16 +115,16 @@ class LibraryManager extends React.Component<ILibraryManagerProps, ILibraryManag
 
         const SEARCH_KEYS = ["name", "sentence", "paragraph"];
         const filterSearch = createFilter(this.state.searchTerm, SEARCH_KEYS);
-
-        const filteredLibraries = this.props.libraries.filter((element) => {
+        let totalCount = 0;
+        this.props.libraries.forEach((element) => {
             const filterSupported = this.state.checked ? element.supported : true;
             if (filterSupported && filterType(element, this.state.type) && filterTopic(element, this.state.topic) && filterSearch(element)) {
-                return true;
+                element.shouldBeDisplayed = true;
+                totalCount++;
             } else {
-                return false;
+                element.shouldBeDisplayed = false;
             }
         });
-        let totalCount = filteredLibraries.length;
         let totalCountTips = "";
         if (this.state.type === "All" && this.state.topic === "All" && !this.state.searchTerm) {
             totalCountTips = `Total ${totalCount} Libraries`;
@@ -138,9 +137,6 @@ class LibraryManager extends React.Component<ILibraryManagerProps, ILibraryManag
             uninstallLibrary: this.props.uninstallLibrary,
         };
         const isOperating = !!this.props.installingLibraryName || !!this.props.uninstallingLibraryName;
-        const listItems = filteredLibraries.map((library, index) => {
-            return (<LibraryItemView key={library.name} library={library} {...libraryItemProps}/>);
-        });
 
         return (<div className={"librarymanager " + (isOperating ? "disabled" : "")}>
             {
@@ -169,7 +165,13 @@ class LibraryManager extends React.Component<ILibraryManagerProps, ILibraryManag
                 <Checkbox className="supported-checkbox" onChange={this.handleCheck}>Only show libraries supported by current board</Checkbox>
             </div>
             <div className="arduinomanager-container">
-                <InfiniteListView list={listItems} useWindowAsScrollContainer />
+                {
+                    this.props.libraries.map((library, index) => {
+                        return (<div key={library.name} className={library.shouldBeDisplayed ? "" : "hidden"}>
+                                <LibraryItemView library={library} {...libraryItemProps}/>
+                            </div>);
+                    })
+                }
             </div>
             <div className="arduinomanager-footer theme-bgcolor">
                 <span>{ totalCountTips }</span>
